@@ -35,7 +35,7 @@
         android:layout_marginEnd="32dp"
         android:background="@android:drawable/editbox_background"
         android:gravity="right|center_vertical"
-        android:hint=" שם משתמש 👤"
+        android:hint=" שם משתמש (אימייל)👤"
         android:inputType="textEmailAddress"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"

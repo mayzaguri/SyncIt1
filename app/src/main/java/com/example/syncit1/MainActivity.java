@@ -15,6 +15,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
+import android.content.Intent;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -49,7 +50,53 @@ public class MainActivity extends AppCompatActivity {
 
         tvRegisterClick.setOnClickListener(
                 v -> showRegisterDialog());
+        // התחברות
+        EditText etEmail = findViewById(R.id.etEmail);
+        EditText etPassword = findViewById(R.id.etPassword);
+        View btnLogin = findViewById(R.id.btnLogin);
+
+        btnLogin.setOnClickListener(v -> {
+
+            String email = etEmail.getText().toString().trim();
+            String password = etPassword.getText().toString();
+
+            if (email.isEmpty() || password.isEmpty()) {
+
+                Toast.makeText(
+                        MainActivity.this,
+                        "נא למלא אימייל וסיסמה",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                return;
+            }
+
+            mAuth.signInWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(this, task -> {
+
+                        if (task.isSuccessful()) {
+
+                            Toast.makeText(
+                                    MainActivity.this,
+                                    "התחברת בהצלחה! ✈️",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                            Intent intent = new Intent(MainActivity.this, HomeActivity.class);
+                            startActivity(intent);
+                            finish();
+
+                        } else {
+
+                            Toast.makeText(
+                                    MainActivity.this,
+                                    "האימייל או הסיסמה שגויים",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+                    });
+        });
     }
+
 
     // יצירת חלונית ההרשמה
     private void showRegisterDialog() {
@@ -121,8 +168,14 @@ public class MainActivity extends AppCompatActivity {
                                     "החשבון נוצר בהצלחה! ✈️",
                                     Toast.LENGTH_SHORT
                             ).show();
+                            EditText loginEmail =
+                                    findViewById(R.id.etEmail);
+
+                            loginEmail.setText(email);
 
                             dialog.dismiss();
+
+
 
                         } else {
 
