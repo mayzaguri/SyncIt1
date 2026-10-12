@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:padding="24dp"
+        android:background="@drawable/trip_button">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✈️ יצירת קבוצה חדשה"
+            android:textColor="#176FA6"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="מתכננים את הטיול הבא ביחד!"
+            android:textColor="#5686A8"
+            android:textSize="14sp"
+            android:layout_marginBottom="20dp" />
+
+        <EditText
+            android:id="@+id/etGroupName"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:hint="שם הקבוצה"
+            android:inputType="textCapSentences"
+            android:gravity="right|center_vertical"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/etTripDestination"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:hint="יעד הטיול 🌍"
+            android:inputType="textCapSentences"
+            android:gravity="right|center_vertical"
+            android:padding="12dp"
+            android:layout_marginBottom="18dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="תאריך התחלה"
+            android:textColor="#176FA6"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <Button
+            android:id="@+id/btnStartDate"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="בחירת תאריך התחלה"
+            android:textColor="#176FA6"
+            android:backgroundTint="#DDF2FF"
+            android:layout_marginBottom="14dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="תאריך סיום"
+            android:textColor="#176FA6"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <Button
+            android:id="@+id/btnEndDate"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="בחירת תאריך סיום"
+            android:textColor="#176FA6"
+            android:backgroundTint="#DDF2FF"
+            android:layout_marginBottom="22dp" />
+
+        <Button
+            android:id="@+id/btnCreateGroup"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:text="צור קבוצה ✨"
+            android:textColor="#FFFFFF"
+            android:textSize="17sp"
+            android:backgroundTint="#1687C9" />
+
+        <TextView
+            android:id="@+id/btnCancelCreateTrip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:padding="10dp"
+            android:text="ביטול"
+            android:textColor="#5686A8"
+            android:textSize="15sp"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+</ScrollView>
