@@ -15,6 +15,10 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import java.util.HashMap;
+import java.util.Map;
 import android.content.Intent;
 
 public class MainActivity extends AppCompatActivity {
@@ -76,14 +80,57 @@ public class MainActivity extends AppCompatActivity {
 
                         if (task.isSuccessful()) {
 
-                            Toast.makeText(
-                                    MainActivity.this,
-                                    "התחברת בהצלחה! ✈️",
-                                    Toast.LENGTH_SHORT
-                            ).show();
-                            Intent intent = new Intent(MainActivity.this, HomeActivity.class);
-                            startActivity(intent);
-                            finish();
+                            FirebaseUser currentUser = mAuth.getCurrentUser();
+
+                            if (currentUser == null) {
+                                Toast.makeText(
+                                        MainActivity.this,
+                                        "לא נמצא משתמש מחובר",
+                                        Toast.LENGTH_LONG
+                                ).show();
+                                return;
+                            }
+
+                            String userId = currentUser.getUid();
+
+                            FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+                            db.collection("Users")
+                                    .document(userId)
+                                    .get()
+                                    .addOnSuccessListener(document -> {
+
+                                        if (document.exists()) {
+                                            openHome();
+                                            return;
+                                        }
+
+                                        Map<String, Object> userData = new HashMap<>();
+                                        userData.put("email", currentUser.getEmail());
+                                        userData.put("name", currentUser.getEmail());
+
+                                        db.collection("Users")
+                                                .document(userId)
+                                                .set(userData)
+                                                .addOnSuccessListener(unused -> openHome())
+                                                .addOnFailureListener(e ->
+                                                        Toast.makeText(
+                                                                MainActivity.this,
+                                                                "שמירת המשתמש נכשלה: "
+                                                                        + e.getMessage(),
+                                                                Toast.LENGTH_LONG
+                                                        ).show()
+                                                );
+
+                                    })
+                                    .addOnFailureListener(e ->
+                                            Toast.makeText(
+                                                    MainActivity.this,
+                                                    "בדיקת המשתמש נכשלה: "
+                                                            + e.getMessage(),
+                                                    Toast.LENGTH_LONG
+                                            ).show()
+                                    );
 
                         } else {
 
@@ -163,19 +210,41 @@ public class MainActivity extends AppCompatActivity {
 
                         if (task.isSuccessful()) {
 
-                            Toast.makeText(
-                                    MainActivity.this,
-                                    "החשבון נוצר בהצלחה! ✈️",
-                                    Toast.LENGTH_SHORT
-                            ).show();
-                            EditText loginEmail =
-                                    findViewById(R.id.etEmail);
+                            String userId = mAuth.getCurrentUser().getUid();
 
-                            loginEmail.setText(email);
+                            Map<String, Object> userData = new HashMap<>();
+                            userData.put("email", email);
+                            userData.put("name", email);
 
-                            dialog.dismiss();
+                            FirebaseFirestore db = FirebaseFirestore.getInstance();
 
+                            db.collection("Users")
+                                    .document(userId)
+                                    .set(userData)
+                                    .addOnSuccessListener(unused -> {
 
+                                        Toast.makeText(
+                                                MainActivity.this,
+                                                "החשבון נוצר בהצלחה! ✈️",
+                                                Toast.LENGTH_SHORT
+                                        ).show();
+
+                                        EditText loginEmail =
+                                                findViewById(R.id.etEmail);
+
+                                        loginEmail.setText(email);
+
+                                        dialog.dismiss();
+                                    })
+                                    .addOnFailureListener(e -> {
+
+                                        Toast.makeText(
+                                                MainActivity.this,
+                                                "שמירת פרטי המשתמש נכשלה: "
+                                                        + e.getMessage(),
+                                                Toast.LENGTH_LONG
+                                        ).show();
+                                    });
 
                         } else {
 
@@ -194,5 +263,20 @@ public class MainActivity extends AppCompatActivity {
                 dialogView.findViewById(R.id.btnCancelRegister);
 
         btnCancel.setOnClickListener(v -> dialog.dismiss());
+    }
+    private void openHome() {
+        Toast.makeText(
+                MainActivity.this,
+                "התחברת בהצלחה! ✈️",
+                Toast.LENGTH_SHORT
+        ).show();
+
+        Intent intent = new Intent(
+                MainActivity.this,
+                HomeActivity.class
+        );
+
+        startActivity(intent);
+        finish();
     }
 }
