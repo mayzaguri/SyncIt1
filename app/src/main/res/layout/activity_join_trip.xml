@@ -6,7 +6,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/join"
+    android:background="@drawable/joinp"
     android:layoutDirection="rtl"
     tools:context=".JoinTripActivity">
 
@@ -29,12 +29,12 @@
                 android:id="@+id/tvJoinTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="24dp"
                 android:layout_marginBottom="8dp"
                 android:gravity="center"
-                android:text="מצטרפים לטיול ✈️"
-                android:textColor="#0EA5E9"
-                android:textSize="27sp"
+                android:text="בואו למצוא את הטיול שלכם ✈️"
+                android:textColor="#FFFFFF"
+                android:textSize="25sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -42,70 +42,80 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
                 android:gravity="center"
-                android:text="איזו קבוצה מחפשים?"
+                android:text="מצטרפים לחברים ויוצאים להרפתקה 🌍"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp" />
+                android:textSize="15sp" />
 
             <EditText
-                android:id="@+id/etGroupNameSearch"
+                android:id="@+id/etDestinationSearch"
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
+                android:layout_height="54dp"
                 android:layout_marginBottom="12dp"
                 android:background="@android:drawable/edit_text"
-                android:hint="🔎  שם הקבוצה"
-                android:inputType="text"
+                android:hint="🌍  לאן תרצו לטוס?"
+                android:inputType="textCapSentences"
                 android:singleLine="true"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
                 android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/tvSearchStartDate"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="10dp"
+                android:layout_height="52dp"
+                android:layout_marginBottom="12dp"
                 android:background="@android:drawable/edit_text"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:text="📅  תאריך התחלה"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="📅  תאריך יציאה"
                 android:textColor="#607D8B"
-                android:textSize="15sp" />
+                android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/tvSearchEndDate"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginBottom="14dp"
+                android:layout_height="52dp"
+                android:layout_marginBottom="16dp"
                 android:background="@android:drawable/edit_text"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_vertical"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:text="📅  תאריך סיום"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="📅  תאריך חזרה"
                 android:textColor="#607D8B"
-                android:textSize="15sp" />
+                android:textSize="16sp" />
 
             <Button
                 android:id="@+id/btnSearchGroups"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
+                android:layout_height="52dp"
                 android:layout_marginBottom="24dp"
                 android:backgroundTint="#0EA5E9"
-                android:text="חיפוש קבוצות"
+                android:text="חיפוש טיולים 🔎"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp" />
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="טיולים שאפשר להצטרף אליהם"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvNoGroups"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:padding="16dp"
-                android:text="לא נמצאו קבוצות עדיין"
+                android:padding="20dp"
+                android:text="עדיין אין טיולים מתאימים 🌤️"
                 android:textColor="#FFFFFF"
                 android:textSize="15sp"
                 android:visibility="gone" />
@@ -115,7 +125,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
-                android:clipToPadding="false" />
+                android:clipToPadding="false"
+                android:paddingBottom="24dp"
+                tools:listitem="@null" />
 
         </LinearLayout>
 
