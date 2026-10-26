@@ -6,6 +6,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -15,13 +16,14 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Calendar;
 
 public class JoinTripActivity extends AppCompatActivity {
 
@@ -48,22 +50,16 @@ public class JoinTripActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        etDestinationSearch =
-                findViewById(R.id.etDestinationSearch);
-        tvSearchStartDate =
-                findViewById(R.id.tvSearchStartDate);
-        tvSearchEndDate =
-                findViewById(R.id.tvSearchEndDate);
-        btnSearchGroups =
-                findViewById(R.id.btnSearchGroups);
-        tvNoGroups =
-                findViewById(R.id.tvNoGroups);
-        rvGroups =
-                findViewById(R.id.rvGroups);
+        etDestinationSearch = findViewById(R.id.etDestinationSearch);
+        tvSearchStartDate = findViewById(R.id.tvSearchStartDate);
+        tvSearchEndDate = findViewById(R.id.tvSearchEndDate);
+        btnSearchGroups = findViewById(R.id.btnSearchGroups);
+        tvNoGroups = findViewById(R.id.tvNoGroups);
+        rvGroups = findViewById(R.id.rvGroups);
 
-        rvGroups.setLayoutManager(
-                new LinearLayoutManager(this));
+        rvGroups.setLayoutManager(new LinearLayoutManager(this));
 
+        // לחיצה על כפתור ההצטרפות בכרטיס תפעיל את joinGroup.
         adapter = new GroupAdapter(group -> joinGroup(group));
         rvGroups.setAdapter(adapter);
 
@@ -103,7 +99,7 @@ public class JoinTripActivity extends AppCompatActivity {
     private void loadGroups() {
         tvNoGroups.setText("טוענים טיולים... ✈️");
         tvNoGroups.setVisibility(TextView.VISIBLE);
-        rvGroups.setVisibility(RecyclerView.GONE);
+        rvGroups.setVisibility(View.GONE);
 
         db.collection("Groups")
                 .get()
@@ -113,13 +109,13 @@ public class JoinTripActivity extends AppCompatActivity {
                     for (DocumentSnapshot document :
                             querySnapshot.getDocuments()) {
 
-                        Map<String, Object> data =
-                                document.getData();
+                        Map<String, Object> data = document.getData();
 
                         if (data != null) {
                             Map<String, Object> group =
                                     new HashMap<>(data);
 
+                            // שומרים את מזהה המסמך לצורך הצטרפות.
                             group.put("groupId", document.getId());
                             allGroups.add(group);
                         }
@@ -131,12 +127,11 @@ public class JoinTripActivity extends AppCompatActivity {
                     tvNoGroups.setText(
                             "לא הצלחנו לטעון את הטיולים");
                     tvNoGroups.setVisibility(TextView.VISIBLE);
-                    rvGroups.setVisibility(RecyclerView.GONE);
+                    rvGroups.setVisibility(View.GONE);
 
                     Toast.makeText(
                             JoinTripActivity.this,
-                            "שגיאה בטעינת הטיולים: "
-                                    + e.getMessage(),
+                            "שגיאה בטעינת הטיולים: " + e.getMessage(),
                             Toast.LENGTH_LONG
                     ).show();
                 });
@@ -155,82 +150,111 @@ public class JoinTripActivity extends AppCompatActivity {
         boolean hasStartDate = !startDate.isEmpty();
         boolean hasEndDate = !endDate.isEmpty();
 
-        int maxScore =
-                (hasDestination ? 2 : 0)
-                        + (hasStartDate ? 1 : 0)
-                        + (hasEndDate ? 1 : 0);
+        // בדיקה שתאריך היציאה לא מאוחר מתאריך החזרה.
+        if (hasStartDate && hasEndDate
+                && startDate.compareTo(endDate) > 0) {
+            Toast.makeText(
+                    this,
+                    "תאריך היציאה צריך להיות לפני תאריך החזרה",
+                    Toast.LENGTH_LONG
+            ).show();
+            return;
+        }
+
+        List<Map<String, Object>> groupsToShow =
+                new ArrayList<>();
 
         for (Map<String, Object> group : allGroups) {
             String groupDestination =
                     getGroupValue(group, "destination")
                             .toLowerCase(Locale.ROOT);
 
-            String groupStart =
-                    getGroupValue(group, "startDate");
-
-            String groupEnd =
-                    getGroupValue(group, "endDate");
-
-            int score = 0;
+            String groupStart = getGroupValue(group, "startDate");
+            String groupEnd = getGroupValue(group, "endDate");
 
             boolean destinationMatches =
                     hasDestination
                             && groupDestination.contains(destination);
 
-            boolean startMatches =
-                    hasStartDate
-                            && startDate.equals(groupStart);
+            boolean datesOverlap = false;
+            boolean exactDates = false;
 
-            boolean endMatches =
-                    hasEndDate
-                            && endDate.equals(groupEnd);
+            boolean hasGroupDates =
+                    !groupStart.isEmpty() && !groupEnd.isEmpty();
+
+            if (hasGroupDates) {
+                if (hasStartDate && hasEndDate) {
+                    datesOverlap =
+                            groupEnd.compareTo(startDate) >= 0
+                                    && groupStart.compareTo(endDate) <= 0;
+
+                    exactDates =
+                            startDate.equals(groupStart)
+                                    && endDate.equals(groupEnd);
+
+                } else if (hasStartDate) {
+                    datesOverlap =
+                            groupEnd.compareTo(startDate) >= 0;
+
+                } else if (hasEndDate) {
+                    datesOverlap =
+                            groupStart.compareTo(endDate) <= 0;
+                }
+            }
+
+            int score = 0;
 
             if (destinationMatches) {
+                score += 4;
+            }
+
+            if (datesOverlap) {
                 score += 2;
             }
 
-            if (startMatches) {
-                score += 1;
-            }
-
-            if (endMatches) {
-                score += 1;
+            if (exactDates) {
+                score += 2;
             }
 
             String matchInfo;
 
-            if (maxScore == 0) {
+            if (!hasDestination && !hasStartDate && !hasEndDate) {
                 matchInfo = "טיול זמין להצטרפות ✈️";
-            } else if (score == maxScore) {
+            } else if (destinationMatches && exactDates) {
                 matchInfo = "התאמה מלאה לחיפוש ✨";
-            } else if (score > 0) {
-                matchInfo = "מתאים לחלק מההעדפות שלך 🌍";
+            } else if (destinationMatches && datesOverlap) {
+                matchInfo = "היעד מתאים ויש חפיפה בתאריכים 📅";
+            } else if (destinationMatches) {
+                matchInfo = "היעד מתאים, התאריכים שונים 📍";
+            } else if (datesOverlap) {
+                matchInfo = "יש חפיפה בתאריכים, היעד שונה 📅";
             } else {
                 matchInfo = "הצעה נוספת שאולי תעניין אותך ✈️";
             }
 
             group.put("matchScore", score);
             group.put("matchInfo", matchInfo);
+
+            groupsToShow.add(group);
         }
 
-        // מציגים קודם את הטיולים עם הציון הגבוה ביותר.
-        allGroups.sort((group1, group2) ->
+        // ההתאמות הטובות ביותר יוצגו ראשונות.
+        groupsToShow.sort((group1, group2) ->
                 Integer.compare(
-                        (int) group2.get("matchScore"),
-                        (int) group1.get("matchScore")
+                        ((Number) group2.get("matchScore")).intValue(),
+                        ((Number) group1.get("matchScore")).intValue()
                 ));
 
-        // מציגים גם הצעות נוספות במקום להשאיר מסך ריק.
-        adapter.setGroups(new ArrayList<>(allGroups));
+        adapter.setGroups(groupsToShow);
 
-        if (allGroups.isEmpty()) {
+        if (groupsToShow.isEmpty()) {
             tvNoGroups.setText(
                     "עדיין אין טיולים להצטרף אליהם 🌍");
             tvNoGroups.setVisibility(TextView.VISIBLE);
-            rvGroups.setVisibility(RecyclerView.GONE);
+            rvGroups.setVisibility(View.GONE);
         } else {
             tvNoGroups.setVisibility(TextView.GONE);
-            rvGroups.setVisibility(RecyclerView.VISIBLE);
+            rvGroups.setVisibility(View.VISIBLE);
         }
     }
 
@@ -240,8 +264,7 @@ public class JoinTripActivity extends AppCompatActivity {
 
         Object value = group.get(key);
 
-        // אם השדה לא נמצא ברמה הראשית,
-        // מחפשים אותו גם בתוך answers.
+        // אם השדה לא נמצא ברמה הראשית, בודקים גם בתוך answers.
         if (value == null) {
             Object answersObject = group.get("answers");
 
@@ -288,20 +311,22 @@ public class JoinTripActivity extends AppCompatActivity {
             return;
         }
 
-        // מוסיפים את המשתמש לרשימת החברים בקבוצה.
+        // מוסיפים את המשתמש לרשימת החברים.
+        Map<String, Object> groupUpdates = new HashMap<>();
+        groupUpdates.put("memberIds", FieldValue.arrayUnion(userId));
+
         db.collection("Groups")
                 .document(groupId)
-                .update("memberIds", FieldValue.arrayUnion(userId))
+                .set(groupUpdates, SetOptions.merge())
                 .addOnSuccessListener(unused -> {
-                    // שומרים גם את הקבוצה בפרופיל המשתמש.
+
+                    // שומרים גם את מזהה הקבוצה בפרופיל המשתמש.
+                    Map<String, Object> userUpdates = new HashMap<>();
+                    userUpdates.put("groupId", groupId);
+
                     db.collection("Users")
                             .document(userId)
-                            .set(
-                                    new HashMap<String, Object>() {{
-                                        put("groupId", groupId);
-                                    }},
-                                    com.google.firebase.firestore.SetOptions.merge()
-                            )
+                            .set(userUpdates, SetOptions.merge())
                             .addOnSuccessListener(userUnused -> {
                                 Toast.makeText(
                                         JoinTripActivity.this,
@@ -314,18 +339,18 @@ public class JoinTripActivity extends AppCompatActivity {
                             .addOnFailureListener(e ->
                                     Toast.makeText(
                                             JoinTripActivity.this,
-                                            "הצטרפת לקבוצה, אבל לא הצלחנו לעדכן את הפרופיל: "
+                                            "ההצטרפות נשמרה בקבוצה, אבל עדכון המשתמש נכשל: "
                                                     + e.getMessage(),
                                             Toast.LENGTH_LONG
                                     ).show()
                             );
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(
-                            JoinTripActivity.this,
-                            "לא הצלחנו להצטרף: " + e.getMessage(),
-                            Toast.LENGTH_LONG
-                    ).show();
-                });
+                .addOnFailureListener(e ->
+                        Toast.makeText(
+                                JoinTripActivity.this,
+                                "לא הצלחנו להצטרף: " + e.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show()
+                );
     }
 }
