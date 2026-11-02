@@ -17,6 +17,8 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.firestore.DocumentReference;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -290,6 +292,7 @@ public class JoinTripActivity extends AppCompatActivity {
     }
 
     private void joinGroup(Map<String, Object> group) {
+
         if (auth.getCurrentUser() == null) {
             Toast.makeText(
                     this,
@@ -311,23 +314,81 @@ public class JoinTripActivity extends AppCompatActivity {
             return;
         }
 
-        // מוסיפים את המשתמש לרשימת החברים.
-        Map<String, Object> groupUpdates = new HashMap<>();
-        groupUpdates.put("memberIds", FieldValue.arrayUnion(userId));
+        DocumentReference groupRef =
+                db.collection("Groups").document(groupId);
 
-        db.collection("Groups")
-                .document(groupId)
-                .set(groupUpdates, SetOptions.merge())
-                .addOnSuccessListener(unused -> {
+        DocumentReference userRef =
+                db.collection("Users").document(userId);
 
-                    // שומרים גם את מזהה הקבוצה בפרופיל המשתמש.
-                    Map<String, Object> userUpdates = new HashMap<>();
-                    userUpdates.put("groupId", groupId);
+        // קודם קוראים את המשתמש כדי לשמור על הקבוצות הקיימות שלו.
+        userRef.get()
+                .addOnSuccessListener(userDocument -> {
 
-                    db.collection("Users")
-                            .document(userId)
-                            .set(userUpdates, SetOptions.merge())
-                            .addOnSuccessListener(userUnused -> {
+                    if (!userDocument.exists()) {
+                        Toast.makeText(
+                                JoinTripActivity.this,
+                                "לא נמצא מסמך משתמש",
+                                Toast.LENGTH_LONG
+                        ).show();
+                        return;
+                    }
+
+                    List<String> groupIds = new ArrayList<>();
+
+                    // שומרים את כל הקבוצות שכבר קיימות במערך.
+                    Object existingGroupIds =
+                            userDocument.get("groupIds");
+
+                    if (existingGroupIds instanceof List<?>) {
+                        for (Object id : (List<?>) existingGroupIds) {
+                            if (id != null) {
+                                String existingId = id.toString();
+
+                                if (!groupIds.contains(existingId)) {
+                                    groupIds.add(existingId);
+                                }
+                            }
+                        }
+                    }
+
+                    // מעבירים למערך גם את הקבוצה הישנה,
+                    // אם המשתמש עדיין משתמש בשדה groupId.
+                    String oldGroupId =
+                            userDocument.getString("groupId");
+
+                    if (oldGroupId != null
+                            && !oldGroupId.trim().isEmpty()
+                            && !groupIds.contains(oldGroupId)) {
+                        groupIds.add(oldGroupId);
+                    }
+
+                    // מוסיפים את הקבוצה החדשה בלי למחוק קודמות.
+                    if (!groupIds.contains(groupId)) {
+                        groupIds.add(groupId);
+                    }
+
+                    Map<String, Object> userData = new HashMap<>();
+                    userData.put("groupIds", groupIds);
+
+                    WriteBatch batch = db.batch();
+
+                    // הוספת המשתמש לרשימת החברים בקבוצה.
+                    batch.update(
+                            groupRef,
+                            "memberIds",
+                            FieldValue.arrayUnion(userId)
+                    );
+
+                    // שמירת כל מזהי הקבוצות במסמך המשתמש.
+                    batch.set(
+                            userRef,
+                            userData,
+                            SetOptions.merge()
+                    );
+
+                    batch.commit()
+                            .addOnSuccessListener(unused -> {
+
                                 Toast.makeText(
                                         JoinTripActivity.this,
                                         "הצטרפת לטיול בהצלחה! ✈️",
@@ -336,19 +397,21 @@ public class JoinTripActivity extends AppCompatActivity {
 
                                 finish();
                             })
-                            .addOnFailureListener(e ->
-                                    Toast.makeText(
-                                            JoinTripActivity.this,
-                                            "ההצטרפות נשמרה בקבוצה, אבל עדכון המשתמש נכשל: "
-                                                    + e.getMessage(),
-                                            Toast.LENGTH_LONG
-                                    ).show()
-                            );
+                            .addOnFailureListener(e -> {
+
+                                Toast.makeText(
+                                        JoinTripActivity.this,
+                                        "לא הצלחנו להצטרף לטיול: "
+                                                + e.getMessage(),
+                                        Toast.LENGTH_LONG
+                                ).show();
+                            });
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(
                                 JoinTripActivity.this,
-                                "לא הצלחנו להצטרף: " + e.getMessage(),
+                                "לא הצלחנו לקרוא את פרטי המשתמש: "
+                                        + e.getMessage(),
                                 Toast.LENGTH_LONG
                         ).show()
                 );

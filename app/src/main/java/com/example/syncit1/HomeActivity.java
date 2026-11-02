@@ -1,4 +1,3 @@
-
 package com.example.syncit1;
 
 import android.app.AlertDialog;
@@ -20,12 +19,15 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
@@ -297,38 +299,77 @@ public class HomeActivity extends AppCompatActivity {
             groupData.put("endDate", endDate);
             groupData.put("answers", new HashMap<String, Object>());
 
-            // עדכון המשתמש הקיים בלבד
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("name", name);
-            userData.put("groupId", groupId);
+            // הוספת יוצר הטיול לרשימת החברים
+            groupData.put("memberIds",
+                    java.util.Collections.singletonList(userId));
 
             DocumentReference userRef =
                     db.collection("Users").document(userId);
 
-            // שמירת הטיול ועדכון המשתמש באותה פעולה
-            WriteBatch batch = db.batch();
+            // קוראים את הקבוצות הקיימות של המשתמש
+            userRef.get().addOnSuccessListener(userDocument -> {
 
-            batch.set(groupRef, groupData);
-            batch.set(userRef, userData, SetOptions.merge());
+                List<String> groupIds = new ArrayList<>();
 
-            batch.commit()
-                    .addOnSuccessListener(unused -> {
-                        Toast.makeText(
-                                HomeActivity.this,
-                                "הטיול נוצר בהצלחה! קוד ההצטרפות: "
-                                        + groupId,
-                                Toast.LENGTH_LONG
-                        ).show();
+                Object existingGroupIds = userDocument.get("groupIds");
 
-                        dialog.dismiss();
-                    })
-                    .addOnFailureListener(e ->
+                if (existingGroupIds instanceof List<?>) {
+                    for (Object id : (List<?>) existingGroupIds) {
+                        if (id != null && !groupIds.contains(id.toString())) {
+                            groupIds.add(id.toString());
+                        }
+                    }
+                }
+
+                // שמירה על הקבוצה הקודמת אם עדיין קיימת בשדה הישן
+                String oldGroupId = userDocument.getString("groupId");
+
+                if (oldGroupId != null
+                        && !oldGroupId.trim().isEmpty()
+                        && !groupIds.contains(oldGroupId)) {
+                    groupIds.add(oldGroupId);
+                }
+
+                // הוספת הקבוצה החדשה
+                if (!groupIds.contains(groupId)) {
+                    groupIds.add(groupId);
+                }
+
+                Map<String, Object> userData = new HashMap<>();
+                userData.put("name", name);
+                userData.put("groupIds", groupIds);
+
+                // שמירת הטיול ועדכון המשתמש באותה פעולה
+                WriteBatch batch = db.batch();
+
+                batch.set(groupRef, groupData);
+                batch.set(userRef, userData, SetOptions.merge());
+
+                batch.commit()
+                        .addOnSuccessListener(unused -> {
                             Toast.makeText(
                                     HomeActivity.this,
-                                    "שמירת הטיול נכשלה. בדקי את Firebase",
+                                    "הטיול נוצר בהצלחה!",
                                     Toast.LENGTH_LONG
-                            ).show()
-                    );
+                            ).show();
+
+                            dialog.dismiss();
+                        })
+                        .addOnFailureListener(e ->
+                                Toast.makeText(
+                                        HomeActivity.this,
+                                        "שמירת הטיול נכשלה. בדקי את Firebase",
+                                        Toast.LENGTH_LONG
+                                ).show()
+                        );
+
+            }).addOnFailureListener(e ->
+                    Toast.makeText(
+                            HomeActivity.this,
+                            "לא הצלחנו לקרוא את הקבוצות הקיימות",
+                            Toast.LENGTH_LONG
+                    ).show()
+            );
 
         }).addOnFailureListener(e ->
                 Toast.makeText(
