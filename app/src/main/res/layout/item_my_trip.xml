@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="22dp"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="7dp"
+    app:cardBackgroundColor="#F5FCFF">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="26dp">
+
+        <TextView
+            android:id="@+id/tvTripName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="שם הקבוצה"
+            android:textColor="#075985"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/tvTripDestination"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="יעד הטיול"
+            android:textColor="#28749A"
+            android:textSize="21sp" />
+
+        <TextView
+            android:id="@+id/tvTripDates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="תאריכי הטיול"
+            android:textColor="#52758A"
+            android:textSize="19sp" />
+
+        <TextView
+            android:id="@+id/tvTripMembers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="משתתפים: 1/10"
+            android:textColor="#52758A"
+            android:textSize="19sp" />
+
+        <TextView
+            android:id="@+id/tvTripStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="הטיול פתוח להצטרפות"
+            android:textColor="#0284C7"
+            android:textStyle="bold"
+            android:textSize="18sp" />
+
+        <Button
+            android:id="@+id/btnTripQuestionnaire"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="22dp"
+            android:text="לשאלון הטיול ✨"
+            android:textSize="18sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#0EA5E9" />
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

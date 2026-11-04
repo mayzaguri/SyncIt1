@@ -1,3 +1,4 @@
+
 package com.example.syncit1;
 
 import android.app.DatePickerDialog;
@@ -14,10 +15,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
-import com.google.firebase.firestore.WriteBatch;
 import com.google.firebase.firestore.DocumentReference;
 
 import java.util.ArrayList;
@@ -52,6 +51,12 @@ public class JoinTripActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
+        // חץ חזרה בתחתית המסך, בצד שמאל
+        TextView btnBack = findViewById(R.id.btnBack);
+        btnBack.bringToFront();
+
+        btnBack.setOnClickListener(v -> finish());
+
         etDestinationSearch = findViewById(R.id.etDestinationSearch);
         tvSearchStartDate = findViewById(R.id.tvSearchStartDate);
         tvSearchEndDate = findViewById(R.id.tvSearchEndDate);
@@ -61,7 +66,6 @@ public class JoinTripActivity extends AppCompatActivity {
 
         rvGroups.setLayoutManager(new LinearLayoutManager(this));
 
-        // לחיצה על כפתור ההצטרפות בכרטיס תפעיל את joinGroup.
         adapter = new GroupAdapter(group -> joinGroup(group));
         rvGroups.setAdapter(adapter);
 
@@ -117,7 +121,6 @@ public class JoinTripActivity extends AppCompatActivity {
                             Map<String, Object> group =
                                     new HashMap<>(data);
 
-                            // שומרים את מזהה המסמך לצורך הצטרפות.
                             group.put("groupId", document.getId());
                             allGroups.add(group);
                         }
@@ -139,6 +142,19 @@ public class JoinTripActivity extends AppCompatActivity {
                 });
     }
 
+    // מחזיר את התאריך של היום בפורמט yyyy-MM-dd
+    private String getTodayDate() {
+        Calendar calendar = Calendar.getInstance();
+
+        return String.format(
+                Locale.US,
+                "%04d-%02d-%02d",
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH) + 1,
+                calendar.get(Calendar.DAY_OF_MONTH)
+        );
+    }
+
     private void filterGroups() {
         String destination = etDestinationSearch.getText()
                 .toString()
@@ -147,12 +163,12 @@ public class JoinTripActivity extends AppCompatActivity {
 
         String startDate = getSelectedDate(tvSearchStartDate);
         String endDate = getSelectedDate(tvSearchEndDate);
+        String today = getTodayDate();
 
         boolean hasDestination = !destination.isEmpty();
         boolean hasStartDate = !startDate.isEmpty();
         boolean hasEndDate = !endDate.isEmpty();
 
-        // בדיקה שתאריך היציאה לא מאוחר מתאריך החזרה.
         if (hasStartDate && hasEndDate
                 && startDate.compareTo(endDate) > 0) {
             Toast.makeText(
@@ -167,12 +183,47 @@ public class JoinTripActivity extends AppCompatActivity {
                 new ArrayList<>();
 
         for (Map<String, Object> group : allGroups) {
+
+            // לא מציגים קבוצות שנסגרו
+            Object closedValue = group.get("isClosed");
+
+            if (closedValue instanceof Boolean
+                    && (Boolean) closedValue) {
+                continue;
+            }
+
+            // בדיקת מספר המשתתפים הנוכחי
+            Object membersObject = group.get("memberIds");
+
+            int currentMembers = 0;
+
+            if (membersObject instanceof List<?>) {
+                currentMembers = ((List<?>) membersObject).size();
+            }
+
+            Object maxObject = group.get("maxMembers");
+
+            if (maxObject instanceof Number) {
+                int maxMembers = ((Number) maxObject).intValue();
+
+                // לא מציגים קבוצה שכבר התמלאה
+                if (maxMembers > 0 && currentMembers >= maxMembers) {
+                    continue;
+                }
+            }
+
             String groupDestination =
                     getGroupValue(group, "destination")
                             .toLowerCase(Locale.ROOT);
 
             String groupStart = getGroupValue(group, "startDate");
             String groupEnd = getGroupValue(group, "endDate");
+
+            // לא מציגים טיול שתאריך הסיום שלו כבר עבר
+            if (!groupEnd.isEmpty()
+                    && groupEnd.compareTo(today) < 0) {
+                continue;
+            }
 
             boolean destinationMatches =
                     hasDestination
@@ -240,7 +291,7 @@ public class JoinTripActivity extends AppCompatActivity {
             groupsToShow.add(group);
         }
 
-        // ההתאמות הטובות ביותר יוצגו ראשונות.
+        // ההתאמות הטובות ביותר יוצגו ראשונות
         groupsToShow.sort((group1, group2) ->
                 Integer.compare(
                         ((Number) group2.get("matchScore")).intValue(),
@@ -251,7 +302,7 @@ public class JoinTripActivity extends AppCompatActivity {
 
         if (groupsToShow.isEmpty()) {
             tvNoGroups.setText(
-                    "עדיין אין טיולים להצטרף אליהם 🌍");
+                    "עדיין אין טיולים פתוחים להצטרפות 🌍");
             tvNoGroups.setVisibility(TextView.VISIBLE);
             rvGroups.setVisibility(View.GONE);
         } else {
@@ -266,7 +317,6 @@ public class JoinTripActivity extends AppCompatActivity {
 
         Object value = group.get(key);
 
-        // אם השדה לא נמצא ברמה הראשית, בודקים גם בתוך answers.
         if (value == null) {
             Object answersObject = group.get("answers");
 
@@ -320,100 +370,201 @@ public class JoinTripActivity extends AppCompatActivity {
         DocumentReference userRef =
                 db.collection("Users").document(userId);
 
-        // קודם קוראים את המשתמש כדי לשמור על הקבוצות הקיימות שלו.
-        userRef.get()
-                .addOnSuccessListener(userDocument -> {
+        // בדיקת המכסה והצטרפות מתבצעות יחד ב-Transaction
+        db.runTransaction(transaction -> {
 
-                    if (!userDocument.exists()) {
-                        Toast.makeText(
-                                JoinTripActivity.this,
-                                "לא נמצא מסמך משתמש",
-                                Toast.LENGTH_LONG
-                        ).show();
-                        return;
-                    }
+            // קודם קוראים את שני המסמכים
+            DocumentSnapshot groupDocument =
+                    transaction.get(groupRef);
 
-                    List<String> groupIds = new ArrayList<>();
+            DocumentSnapshot userDocument =
+                    transaction.get(userRef);
 
-                    // שומרים את כל הקבוצות שכבר קיימות במערך.
-                    Object existingGroupIds =
-                            userDocument.get("groupIds");
+            if (!groupDocument.exists()) {
+                return "not_found";
+            }
 
-                    if (existingGroupIds instanceof List<?>) {
-                        for (Object id : (List<?>) existingGroupIds) {
-                            if (id != null) {
-                                String existingId = id.toString();
+            if (!userDocument.exists()) {
+                return "user_not_found";
+            }
 
-                                if (!groupIds.contains(existingId)) {
-                                    groupIds.add(existingId);
-                                }
-                            }
+            // בדיקה אם הקבוצה סגורה
+            Boolean isClosed = groupDocument.getBoolean("isClosed");
+
+            if (Boolean.TRUE.equals(isClosed)) {
+                return "closed";
+            }
+
+            // קריאת רשימת החברים
+            List<String> memberIds = new ArrayList<>();
+
+            Object existingMembers = groupDocument.get("memberIds");
+
+            if (existingMembers instanceof List<?>) {
+                for (Object id : (List<?>) existingMembers) {
+                    if (id != null) {
+                        String memberId = id.toString();
+
+                        if (!memberIds.contains(memberId)) {
+                            memberIds.add(memberId);
                         }
                     }
+                }
+            }
 
-                    // מעבירים למערך גם את הקבוצה הישנה,
-                    // אם המשתמש עדיין משתמש בשדה groupId.
-                    String oldGroupId =
-                            userDocument.getString("groupId");
+            // בדיקה אם המשתמש כבר חבר בקבוצה
+            if (memberIds.contains(userId)) {
+                return "already_member";
+            }
 
-                    if (oldGroupId != null
-                            && !oldGroupId.trim().isEmpty()
-                            && !groupIds.contains(oldGroupId)) {
-                        groupIds.add(oldGroupId);
+            // בדיקת מכסת המשתתפים
+            Object maxObject = groupDocument.get("maxMembers");
+
+            int maxMembers = 30;
+
+            if (maxObject instanceof Number) {
+                maxMembers = ((Number) maxObject).intValue();
+            }
+
+            if (maxMembers <= 0) {
+                maxMembers = 30;
+            }
+
+            if (memberIds.size() >= maxMembers) {
+
+                // הקבוצה מלאה - סוגרים אותה
+                transaction.update(groupRef, "isClosed", true);
+
+                return "full";
+            }
+
+            // הוספת המשתמש החדש
+            memberIds.add(userId);
+
+            // אם הגענו למכסה, סוגרים את הקבוצה
+            boolean shouldClose =
+                    memberIds.size() >= maxMembers;
+
+            transaction.update(
+                    groupRef,
+                    "memberIds",
+                    memberIds
+            );
+
+            transaction.update(
+                    groupRef,
+                    "isClosed",
+                    shouldClose
+            );
+
+            // שמירת כל הקבוצות הקיימות של המשתמש
+            List<String> groupIds = new ArrayList<>();
+
+            Object existingGroupIds =
+                    userDocument.get("groupIds");
+
+            if (existingGroupIds instanceof List<?>) {
+                for (Object id : (List<?>) existingGroupIds) {
+                    if (id != null) {
+                        String existingId = id.toString();
+
+                        if (!groupIds.contains(existingId)) {
+                            groupIds.add(existingId);
+                        }
                     }
+                }
+            }
 
-                    // מוסיפים את הקבוצה החדשה בלי למחוק קודמות.
-                    if (!groupIds.contains(groupId)) {
-                        groupIds.add(groupId);
-                    }
+            // שמירה על הקבוצה הישנה אם עדיין קיימת בשדה groupId
+            String oldGroupId =
+                    userDocument.getString("groupId");
 
-                    Map<String, Object> userData = new HashMap<>();
-                    userData.put("groupIds", groupIds);
+            if (oldGroupId != null
+                    && !oldGroupId.trim().isEmpty()
+                    && !groupIds.contains(oldGroupId)) {
+                groupIds.add(oldGroupId);
+            }
 
-                    WriteBatch batch = db.batch();
+            // הוספת הקבוצה החדשה
+            if (!groupIds.contains(groupId)) {
+                groupIds.add(groupId);
+            }
 
-                    // הוספת המשתמש לרשימת החברים בקבוצה.
-                    batch.update(
-                            groupRef,
-                            "memberIds",
-                            FieldValue.arrayUnion(userId)
-                    );
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("groupIds", groupIds);
 
-                    // שמירת כל מזהי הקבוצות במסמך המשתמש.
-                    batch.set(
-                            userRef,
-                            userData,
-                            SetOptions.merge()
-                    );
+            transaction.set(
+                    userRef,
+                    userData,
+                    SetOptions.merge()
+            );
 
-                    batch.commit()
-                            .addOnSuccessListener(unused -> {
+            return shouldClose ? "joined_and_closed" : "joined";
 
-                                Toast.makeText(
-                                        JoinTripActivity.this,
-                                        "הצטרפת לטיול בהצלחה! ✈️",
-                                        Toast.LENGTH_LONG
-                                ).show();
+        }).addOnSuccessListener(result -> {
 
-                                finish();
-                            })
-                            .addOnFailureListener(e -> {
+            switch (result) {
 
-                                Toast.makeText(
-                                        JoinTripActivity.this,
-                                        "לא הצלחנו להצטרף לטיול: "
-                                                + e.getMessage(),
-                                        Toast.LENGTH_LONG
-                                ).show();
-                            });
-                })
-                .addOnFailureListener(e ->
-                        Toast.makeText(
-                                JoinTripActivity.this,
-                                "לא הצלחנו לקרוא את פרטי המשתמש: "
-                                        + e.getMessage(),
-                                Toast.LENGTH_LONG
-                        ).show()
-                );
+                case "joined":
+                    Toast.makeText(
+                            JoinTripActivity.this,
+                            "הצטרפת לטיול בהצלחה! ✈️",
+                            Toast.LENGTH_LONG
+                    ).show();
+                    finish();
+                    break;
+
+                case "joined_and_closed":
+                    Toast.makeText(
+                            JoinTripActivity.this,
+                            "הצטרפת בהצלחה! הקבוצה התמלאה ונסגרה להצטרפות 🎉",
+                            Toast.LENGTH_LONG
+                    ).show();
+                    finish();
+                    break;
+
+                case "already_member":
+                    Toast.makeText(
+                            JoinTripActivity.this,
+                            "את כבר חברה בקבוצה הזאת",
+                            Toast.LENGTH_LONG
+                    ).show();
+                    break;
+
+                case "closed":
+                case "full":
+                    Toast.makeText(
+                            JoinTripActivity.this,
+                            "הקבוצה כבר מלאה או סגורה להצטרפות",
+                            Toast.LENGTH_LONG
+                    ).show();
+                    loadGroups();
+                    break;
+
+                case "not_found":
+                    Toast.makeText(
+                            JoinTripActivity.this,
+                            "הטיול כבר לא קיים",
+                            Toast.LENGTH_LONG
+                    ).show();
+                    loadGroups();
+                    break;
+
+                case "user_not_found":
+                    Toast.makeText(
+                            JoinTripActivity.this,
+                            "לא נמצא מסמך משתמש",
+                            Toast.LENGTH_LONG
+                    ).show();
+                    break;
+            }
+
+        }).addOnFailureListener(e ->
+                Toast.makeText(
+                        JoinTripActivity.this,
+                        "לא הצלחנו להצטרף לטיול: " + e.getMessage(),
+                        Toast.LENGTH_LONG
+                ).show()
+        );
     }
 }

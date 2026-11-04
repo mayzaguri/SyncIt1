@@ -10,127 +10,151 @@
     android:layoutDirection="rtl"
     tools:context=".JoinTripActivity">
 
-    <ScrollView
+    <!-- אזור הכותרת והחיפוש -->
+    <LinearLayout
+        android:id="@+id/searchSection"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:fillViewport="true"
-        android:padding="22dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="22dp"
+        android:paddingEnd="22dp"
+        android:paddingTop="22dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/tvJoinTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp"
+            android:gravity="center"
+            android:text="בואו למצוא את הטיול שלכם ✈️"
+            android:textColor="#FFFFFF"
+            android:textSize="25sp"
+            android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/tvJoinTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="8dp"
-                android:gravity="center"
-                android:text="בואו למצוא את הטיול שלכם ✈️"
-                android:textColor="#FFFFFF"
-                android:textSize="25sp"
-                android:textStyle="bold" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:gravity="center"
+            android:text="מצטרפים לחברים ויוצאים להרפתקה 🌍"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                android:gravity="center"
-                android:text="מצטרפים לחברים ויוצאים להרפתקה 🌍"
-                android:textColor="#FFFFFF"
-                android:textSize="15sp" />
+        <EditText
+            android:id="@+id/etDestinationSearch"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginBottom="12dp"
+            android:background="@android:drawable/edit_text"
+            android:hint="🌍  לאן תרצו לטוס?"
+            android:inputType="textCapSentences"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:singleLine="true"
+            android:textSize="16sp" />
 
-            <EditText
-                android:id="@+id/etDestinationSearch"
-                android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:layout_marginBottom="12dp"
-                android:background="@android:drawable/edit_text"
-                android:hint="🌍  לאן תרצו לטוס?"
-                android:inputType="textCapSentences"
-                android:singleLine="true"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:textSize="16sp" />
+        <TextView
+            android:id="@+id/tvSearchStartDate"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginBottom="12dp"
+            android:background="@android:drawable/edit_text"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="📅  תאריך יציאה"
+            android:textColor="#607D8B"
+            android:textSize="16sp" />
 
-            <TextView
-                android:id="@+id/tvSearchStartDate"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginBottom="12dp"
-                android:background="@android:drawable/edit_text"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:text="📅  תאריך יציאה"
-                android:textColor="#607D8B"
-                android:textSize="16sp" />
+        <TextView
+            android:id="@+id/tvSearchEndDate"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginBottom="16dp"
+            android:background="@android:drawable/edit_text"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="📅  תאריך חזרה"
+            android:textColor="#607D8B"
+            android:textSize="16sp" />
 
-            <TextView
-                android:id="@+id/tvSearchEndDate"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginBottom="16dp"
-                android:background="@android:drawable/edit_text"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:text="📅  תאריך חזרה"
-                android:textColor="#607D8B"
-                android:textSize="16sp" />
+        <Button
+            android:id="@+id/btnSearchGroups"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginBottom="20dp"
+            android:backgroundTint="#0EA5E9"
+            android:text="חיפוש טיולים 🔎"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/btnSearchGroups"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginBottom="24dp"
-                android:backgroundTint="#0EA5E9"
-                android:text="חיפוש טיולים 🔎"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="טיולים שאפשר להצטרף אליהם"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:text="טיולים שאפשר להצטרף אליהם"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+    </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvNoGroups"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:padding="20dp"
-                android:text="עדיין אין טיולים מתאימים 🌤️"
-                android:textColor="#FFFFFF"
-                android:textSize="15sp"
-                android:visibility="gone" />
+    <!-- רשימת הטיולים - RecyclerView עצמאי עם גלילה -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvGroups"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingStart="22dp"
+        android:paddingEnd="22dp"
+        android:paddingBottom="24dp"
+        android:scrollbars="vertical"
+        app:layout_constraintTop_toBottomOf="@id/searchSection"
+        app:layout_constraintBottom_toTopOf="@id/btnBack"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:listitem="@layout/item_group" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvGroups"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:clipToPadding="false"
-                android:paddingBottom="24dp"
-                tools:listitem="@null" />
+    <!-- הודעה כשאין טיולים -->
+    <TextView
+        android:id="@+id/tvNoGroups"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="20dp"
+        android:text="עדיין אין טיולים מתאימים 🌤️"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/rvGroups"
+        app:layout_constraintBottom_toBottomOf="@id/rvGroups"
+        app:layout_constraintStart_toStartOf="@id/rvGroups"
+        app:layout_constraintEnd_toEndOf="@id/rvGroups" />
 
-        </LinearLayout>
-
-    </ScrollView>
+    <!-- חץ חזרה בתחתית בצד שמאל -->
+    <TextView
+        android:id="@+id/btnBack"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginLeft="15dp"
+        android:layout_marginBottom="15dp"
+        android:gravity="center"
+        android:text="◀"
+        android:textColor="#1E3A8A"
+        android:textSize="30sp"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

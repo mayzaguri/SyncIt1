@@ -84,6 +84,30 @@ public class GroupAdapter extends RecyclerView.Adapter<GroupAdapter.GroupViewHol
                         ? "מוזמנים להצטרף לטיול ✈️"
                         : matchInfo);
 
+        // מספר המשתתפים בקבוצה
+        Object membersObject = group.get("memberIds");
+
+        int membersCount = 0;
+
+        if (membersObject instanceof List<?>) {
+            membersCount = ((List<?>) membersObject).size();
+        }
+
+        // מספר המשתתפים המקסימלי
+        Object maxMembersObject = group.get("maxMembers");
+
+        int maxMembers = 30;
+
+        if (maxMembersObject instanceof Number) {
+            maxMembers = ((Number) maxMembersObject).intValue();
+        }
+
+        int remainingPlaces = Math.max(0, maxMembers - membersCount);
+
+        holder.tvMembersCount.setText(
+                membersCount + " מתוך " + maxMembers +
+                        " משתתפים · נותרו " + remainingPlaces + " מקומות");
+
         holder.btnJoinGroup.setOnClickListener(
                 v -> listener.onJoinClick(group));
     }
@@ -113,6 +137,7 @@ public class GroupAdapter extends RecyclerView.Adapter<GroupAdapter.GroupViewHol
         TextView tvGroupDestination;
         TextView tvGroupDates;
         TextView tvMatchInfo;
+        TextView tvMembersCount;
         Button btnJoinGroup;
 
         GroupViewHolder(@NonNull View itemView) {
@@ -122,6 +147,7 @@ public class GroupAdapter extends RecyclerView.Adapter<GroupAdapter.GroupViewHol
             tvGroupDestination = itemView.findViewById(R.id.tvGroupDestination);
             tvGroupDates = itemView.findViewById(R.id.tvGroupDates);
             tvMatchInfo = itemView.findViewById(R.id.tvMatchInfo);
+            tvMembersCount = itemView.findViewById(R.id.tvMembersCount);
             btnJoinGroup = itemView.findViewById(R.id.btnJoinGroup);
         }
     }

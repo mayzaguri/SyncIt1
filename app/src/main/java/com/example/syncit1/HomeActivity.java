@@ -19,7 +19,6 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
@@ -61,6 +60,18 @@ public class HomeActivity extends AppCompatActivity {
                     return insets;
                 });
 
+        // חזרה למסך ההתחברות
+        TextView btnBack = findViewById(R.id.btnBack);
+
+        btnBack.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    HomeActivity.this,
+                    MainActivity.class
+            );
+            startActivity(intent);
+            finish();
+        });
+
         // יצירת טיול
         findViewById(R.id.btnCreateTrip).setOnClickListener(v ->
                 showCreateTripDialog());
@@ -70,6 +81,17 @@ public class HomeActivity extends AppCompatActivity {
             Intent intent = new Intent(
                     HomeActivity.this,
                     JoinTripActivity.class
+            );
+            startActivity(intent);
+        });
+
+        // מעבר למסך הטיולים שלי
+        Button btnNextMyTrips = findViewById(R.id.btnNextMyTrips);
+
+        btnNextMyTrips.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    HomeActivity.this,
+                    MyTripsActivity.class
             );
             startActivity(intent);
         });
@@ -85,6 +107,9 @@ public class HomeActivity extends AppCompatActivity {
 
         EditText etDestination =
                 dialogView.findViewById(R.id.etTripDestination);
+
+        EditText etMaxMembers =
+                dialogView.findViewById(R.id.etMaxMembers);
 
         Button btnStartDate =
                 dialogView.findViewById(R.id.btnStartDate);
@@ -159,10 +184,14 @@ public class HomeActivity extends AppCompatActivity {
             String destination =
                     etDestination.getText().toString().trim();
 
+            String maxMembersText =
+                    etMaxMembers.getText().toString().trim();
+
             if (groupName.isEmpty()
                     || destination.isEmpty()
                     || startDate[0].isEmpty()
-                    || endDate[0].isEmpty()) {
+                    || endDate[0].isEmpty()
+                    || maxMembersText.isEmpty()) {
 
                 Toast.makeText(
                         this,
@@ -170,6 +199,29 @@ public class HomeActivity extends AppCompatActivity {
                         Toast.LENGTH_SHORT
                 ).show();
 
+                return;
+            }
+
+            // בדיקת מספר המשתתפים
+            int maxMembers;
+
+            try {
+                maxMembers = Integer.parseInt(maxMembersText);
+            } catch (NumberFormatException e) {
+                Toast.makeText(
+                        this,
+                        "מספר המשתתפים אינו תקין",
+                        Toast.LENGTH_SHORT
+                ).show();
+                return;
+            }
+
+            if (maxMembers < 2 || maxMembers > 30) {
+                Toast.makeText(
+                        this,
+                        "מספר המשתתפים חייב להיות בין 2 ל-30",
+                        Toast.LENGTH_SHORT
+                ).show();
                 return;
             }
 
@@ -230,6 +282,7 @@ public class HomeActivity extends AppCompatActivity {
                                 destination,
                                 startDate[0],
                                 endDate[0],
+                                maxMembers,
                                 dialog,
                                 0
                         );
@@ -253,6 +306,7 @@ public class HomeActivity extends AppCompatActivity {
             String destination,
             String startDate,
             String endDate,
+            int maxMembers,
             AlertDialog dialog,
             int attempt
     ) {
@@ -285,6 +339,7 @@ public class HomeActivity extends AppCompatActivity {
                         destination,
                         startDate,
                         endDate,
+                        maxMembers,
                         dialog,
                         attempt + 1
                 );
@@ -298,6 +353,10 @@ public class HomeActivity extends AppCompatActivity {
             groupData.put("startDate", startDate);
             groupData.put("endDate", endDate);
             groupData.put("answers", new HashMap<String, Object>());
+
+            // מספר משתתפים מקסימלי ומצב הצטרפות
+            groupData.put("maxMembers", maxMembers);
+            groupData.put("isClosed", false);
 
             // הוספת יוצר הטיול לרשימת החברים
             groupData.put("memberIds",

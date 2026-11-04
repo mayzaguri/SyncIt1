@@ -49,6 +49,26 @@
             android:padding="12dp"
             android:layout_marginBottom="18dp" />
 
+        <!-- מספר משתתפים מקסימלי -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="מספר משתתפים מקסימלי (כולל אותך)"
+            android:textColor="#176FA6"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <EditText
+            android:id="@+id/etMaxMembers"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:hint="לדוגמה: 5"
+            android:text="5"
+            android:inputType="number"
+            android:gravity="right|center_vertical"
+            android:padding="12dp"
+            android:layout_marginBottom="18dp" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

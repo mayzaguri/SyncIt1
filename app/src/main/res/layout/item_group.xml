@@ -44,6 +44,15 @@
             android:textSize="14sp" />
 
         <TextView
+            android:id="@+id/tvMembersCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="0 מתוך 5 משתתפים · נותרו 5 מקומות"
+            android:textColor="#0EA5E9"
+            android:textSize="14sp" />
+
+        <TextView
             android:id="@+id/tvMatchInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
