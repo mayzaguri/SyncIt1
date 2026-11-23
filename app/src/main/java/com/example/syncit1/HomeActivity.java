@@ -4,7 +4,6 @@ import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -84,22 +83,11 @@ public class HomeActivity extends AppCompatActivity {
             );
             startActivity(intent);
         });
-
-        // מעבר למסך הטיולים שלי
-        Button btnNextMyTrips = findViewById(R.id.btnNextMyTrips);
-
-        btnNextMyTrips.setOnClickListener(v -> {
-            Intent intent = new Intent(
-                    HomeActivity.this,
-                    MyTripsActivity.class
-            );
-            startActivity(intent);
-        });
     }
 
     private void showCreateTripDialog() {
 
-        View dialogView = getLayoutInflater().inflate(
+        android.view.View dialogView = getLayoutInflater().inflate(
                 R.layout.dialog_create_trip, null);
 
         EditText etGroupName =
@@ -406,6 +394,7 @@ public class HomeActivity extends AppCompatActivity {
 
                 batch.commit()
                         .addOnSuccessListener(unused -> {
+
                             Toast.makeText(
                                     HomeActivity.this,
                                     "הטיול נוצר בהצלחה!",
@@ -413,6 +402,17 @@ public class HomeActivity extends AppCompatActivity {
                             ).show();
 
                             dialog.dismiss();
+
+                            // מעבר לשאלון ההעדפות לאחר יצירת הטיול
+                            Intent intent = new Intent(
+                                    HomeActivity.this,
+                                    ActivityPreferences.class
+                            );
+
+                            // העברת קוד הקבוצה למסך ההעדפות
+                            intent.putExtra("groupId", groupId);
+
+                            startActivity(intent);
                         })
                         .addOnFailureListener(e ->
                                 Toast.makeText(
