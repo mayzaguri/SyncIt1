@@ -1,13 +1,13 @@
-
 package com.example.syncit1;
 
 import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -15,12 +15,15 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
-import com.google.firebase.firestore.DocumentReference;
 
+import java.text.SimpleDateFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -51,10 +54,8 @@ public class JoinTripActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // חץ חזרה בתחתית המסך, בצד שמאל
         TextView btnBack = findViewById(R.id.btnBack);
         btnBack.bringToFront();
-
         btnBack.setOnClickListener(v -> finish());
 
         etDestinationSearch = findViewById(R.id.etDestinationSearch);
@@ -80,12 +81,15 @@ public class JoinTripActivity extends AppCompatActivity {
         loadGroups();
     }
 
+    // בחירת תאריך
     private void showDatePicker(TextView dateView) {
+
         Calendar calendar = Calendar.getInstance();
 
         new DatePickerDialog(
                 this,
                 (view, year, month, dayOfMonth) -> {
+
                     String date = String.format(
                             Locale.US,
                             "%04d-%02d-%02d",
@@ -102,14 +106,17 @@ public class JoinTripActivity extends AppCompatActivity {
         ).show();
     }
 
+    // טעינת כל הקבוצות מ-Firebase
     private void loadGroups() {
+
         tvNoGroups.setText("טוענים טיולים... ✈️");
-        tvNoGroups.setVisibility(TextView.VISIBLE);
+        tvNoGroups.setVisibility(View.VISIBLE);
         rvGroups.setVisibility(View.GONE);
 
         db.collection("Groups")
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
+
                     allGroups.clear();
 
                     for (DocumentSnapshot document :
@@ -118,10 +125,12 @@ public class JoinTripActivity extends AppCompatActivity {
                         Map<String, Object> data = document.getData();
 
                         if (data != null) {
+
                             Map<String, Object> group =
                                     new HashMap<>(data);
 
                             group.put("groupId", document.getId());
+
                             allGroups.add(group);
                         }
                     }
@@ -129,9 +138,11 @@ public class JoinTripActivity extends AppCompatActivity {
                     filterGroups();
                 })
                 .addOnFailureListener(e -> {
+
                     tvNoGroups.setText(
                             "לא הצלחנו לטעון את הטיולים");
-                    tvNoGroups.setVisibility(TextView.VISIBLE);
+
+                    tvNoGroups.setVisibility(View.VISIBLE);
                     rvGroups.setVisibility(View.GONE);
 
                     Toast.makeText(
@@ -142,8 +153,9 @@ public class JoinTripActivity extends AppCompatActivity {
                 });
     }
 
-    // מחזיר את התאריך של היום בפורמט yyyy-MM-dd
+    // התאריך הנוכחי
     private String getTodayDate() {
+
         Calendar calendar = Calendar.getInstance();
 
         return String.format(
@@ -155,7 +167,88 @@ public class JoinTripActivity extends AppCompatActivity {
         );
     }
 
+    // בדיקה שהתאריך תקין בפורמט yyyy-MM-dd
+    private static boolean isValidDate(String date) {
+
+        if (date == null || date.trim().isEmpty()) {
+            return false;
+        }
+
+        SimpleDateFormat format =
+                new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+
+        format.setLenient(false);
+
+        try {
+
+            Date parsedDate = format.parse(date);
+
+            return parsedDate != null
+                    && format.format(parsedDate).equals(date);
+
+        } catch (ParseException e) {
+            return false;
+        }
+    }
+
+    // בדיקת תקינות תאריכי הקבוצה
+    private static boolean hasValidGroupDates(
+            String startDate,
+            String endDate) {
+
+        return isValidDate(startDate)
+                && isValidDate(endDate)
+                && startDate.compareTo(endDate) <= 0;
+    }
+
+    // בדיקת תקינות מספר המשתתפים המקסימלי
+    private static int getValidMaxMembers(Object value) {
+
+        if (!(value instanceof Number)) {
+            return -1;
+        }
+
+        Number number = (Number) value;
+
+        int maxMembers = number.intValue();
+
+        if (maxMembers <= 0
+                || number.doubleValue() != maxMembers) {
+            return -1;
+        }
+
+        return maxMembers;
+    }
+
+    // ספירת חברים קיימים ללא כפילויות
+    private static int countMembers(Object membersObject) {
+
+        if (!(membersObject instanceof List<?>)) {
+            return 0;
+        }
+
+        List<String> uniqueMembers = new ArrayList<>();
+
+        for (Object member : (List<?>) membersObject) {
+
+            if (member != null) {
+
+                String id = member.toString();
+
+                if (!id.trim().isEmpty()
+                        && !uniqueMembers.contains(id)) {
+
+                    uniqueMembers.add(id);
+                }
+            }
+        }
+
+        return uniqueMembers.size();
+    }
+
+    // סינון ודירוג הקבוצות
     private void filterGroups() {
+
         String destination = etDestinationSearch.getText()
                 .toString()
                 .trim()
@@ -163,19 +256,36 @@ public class JoinTripActivity extends AppCompatActivity {
 
         String startDate = getSelectedDate(tvSearchStartDate);
         String endDate = getSelectedDate(tvSearchEndDate);
+
         String today = getTodayDate();
 
         boolean hasDestination = !destination.isEmpty();
         boolean hasStartDate = !startDate.isEmpty();
         boolean hasEndDate = !endDate.isEmpty();
 
+        boolean hasDateSearch = hasStartDate || hasEndDate;
+
+        if (hasStartDate && !isValidDate(startDate)
+                || hasEndDate && !isValidDate(endDate)) {
+
+            Toast.makeText(
+                    this,
+                    "אחד התאריכים אינו תקין",
+                    Toast.LENGTH_LONG
+            ).show();
+
+            return;
+        }
+
         if (hasStartDate && hasEndDate
                 && startDate.compareTo(endDate) > 0) {
+
             Toast.makeText(
                     this,
                     "תאריך היציאה צריך להיות לפני תאריך החזרה",
                     Toast.LENGTH_LONG
             ).show();
+
             return;
         }
 
@@ -184,133 +294,189 @@ public class JoinTripActivity extends AppCompatActivity {
 
         for (Map<String, Object> group : allGroups) {
 
-            // לא מציגים קבוצות שנסגרו
+            // 1. לא מציגים קבוצות סגורות
             Object closedValue = group.get("isClosed");
 
-            if (closedValue instanceof Boolean
-                    && (Boolean) closedValue) {
+            if (Boolean.TRUE.equals(closedValue)) {
                 continue;
             }
 
-            // בדיקת מספר המשתתפים הנוכחי
-            Object membersObject = group.get("memberIds");
+            // 2. חייב להיות מספר משתתפים מקסימלי תקין
+            int maxMembers =
+                    getValidMaxMembers(group.get("maxMembers"));
 
-            int currentMembers = 0;
-
-            if (membersObject instanceof List<?>) {
-                currentMembers = ((List<?>) membersObject).size();
+            if (maxMembers <= 0) {
+                continue;
             }
 
-            Object maxObject = group.get("maxMembers");
+            // 3. בדיקת מספר המשתתפים
+            int currentMembers =
+                    countMembers(group.get("memberIds"));
 
-            if (maxObject instanceof Number) {
-                int maxMembers = ((Number) maxObject).intValue();
-
-                // לא מציגים קבוצה שכבר התמלאה
-                if (maxMembers > 0 && currentMembers >= maxMembers) {
-                    continue;
-                }
+            if (currentMembers >= maxMembers) {
+                continue;
             }
 
+            // 4. בדיקת תאריכי הקבוצה
+            String groupStart =
+                    getGroupValue(group, "startDate");
+
+            String groupEnd =
+                    getGroupValue(group, "endDate");
+
+            if (!hasValidGroupDates(groupStart, groupEnd)) {
+                continue;
+            }
+
+            // 5. לא מציגים טיולים שהסתיימו
+            if (groupEnd.compareTo(today) < 0) {
+                continue;
+            }
+
+            // 6. בדיקת התאמה ליעד
             String groupDestination =
                     getGroupValue(group, "destination")
                             .toLowerCase(Locale.ROOT);
 
-            String groupStart = getGroupValue(group, "startDate");
-            String groupEnd = getGroupValue(group, "endDate");
-
-            // לא מציגים טיול שתאריך הסיום שלו כבר עבר
-            if (!groupEnd.isEmpty()
-                    && groupEnd.compareTo(today) < 0) {
-                continue;
-            }
-
             boolean destinationMatches =
                     hasDestination
+                            && !groupDestination.isEmpty()
                             && groupDestination.contains(destination);
 
-            boolean datesOverlap = false;
+            // 7. בדיקת התאמה לתאריכים
             boolean exactDates = false;
+            boolean datesOverlap = false;
 
-            boolean hasGroupDates =
-                    !groupStart.isEmpty() && !groupEnd.isEmpty();
+            if (hasStartDate && hasEndDate) {
 
-            if (hasGroupDates) {
-                if (hasStartDate && hasEndDate) {
-                    datesOverlap =
-                            groupEnd.compareTo(startDate) >= 0
-                                    && groupStart.compareTo(endDate) <= 0;
+                exactDates =
+                        groupStart.equals(startDate)
+                                && groupEnd.equals(endDate);
 
-                    exactDates =
-                            startDate.equals(groupStart)
-                                    && endDate.equals(groupEnd);
+                datesOverlap =
+                        groupEnd.compareTo(startDate) >= 0
+                                && groupStart.compareTo(endDate) <= 0;
 
-                } else if (hasStartDate) {
-                    datesOverlap =
-                            groupEnd.compareTo(startDate) >= 0;
+            } else if (hasStartDate) {
 
-                } else if (hasEndDate) {
-                    datesOverlap =
-                            groupStart.compareTo(endDate) <= 0;
+                datesOverlap =
+                        groupEnd.compareTo(startDate) >= 0;
+
+            } else if (hasEndDate) {
+
+                datesOverlap =
+                        groupStart.compareTo(endDate) <= 0;
+            }
+
+            // 8. דירוג לפי קטגוריות במקום ניקוד
+            int matchCategory;
+            String matchInfo;
+
+            if (!hasDestination && !hasDateSearch) {
+
+                matchCategory = 0;
+                matchInfo = "טיול זמין להצטרפות ✈️";
+
+            } else if (hasDestination && hasDateSearch) {
+
+                // חיפוש לפי יעד ותאריכים
+
+                if (destinationMatches && exactDates) {
+
+                    matchCategory = 0;
+                    matchInfo = "התאמה מלאה לחיפוש ✨";
+
+                } else if (exactDates) {
+
+                    matchCategory = 1;
+                    matchInfo = "התאריכים מתאימים, יעד שונה 📅";
+
+                } else if (destinationMatches) {
+
+                    matchCategory = 2;
+                    matchInfo = "היעד מתאים, התאריכים שונים 📍";
+
+                } else {
+
+                    matchCategory = 3;
+                    matchInfo = "אפשרות נוספת שאולי תעניין אותך ✈️";
+                }
+
+            } else if (hasDestination) {
+
+                // חיפוש לפי יעד בלבד
+
+                if (destinationMatches) {
+
+                    matchCategory = 0;
+                    matchInfo = "היעד מתאים לחיפוש 📍";
+
+                } else {
+
+                    matchCategory = 1;
+                    matchInfo = "טיול נוסף שאולי יעניין אותך ✈️";
+                }
+
+            } else {
+
+                // חיפוש לפי תאריכים בלבד
+
+                if (exactDates) {
+
+                    matchCategory = 0;
+                    matchInfo = "התאריכים מתאימים בדיוק ✨";
+
+                } else if (datesOverlap) {
+
+                    matchCategory = 1;
+                    matchInfo = "יש חפיפה בתאריכים 📅";
+
+                } else {
+
+                    matchCategory = 2;
+                    matchInfo = "טיול נוסף שאולי יעניין אותך ✈️";
                 }
             }
 
-            int score = 0;
-
-            if (destinationMatches) {
-                score += 4;
-            }
-
-            if (datesOverlap) {
-                score += 2;
-            }
-
-            if (exactDates) {
-                score += 2;
-            }
-
-            String matchInfo;
-
-            if (!hasDestination && !hasStartDate && !hasEndDate) {
-                matchInfo = "טיול זמין להצטרפות ✈️";
-            } else if (destinationMatches && exactDates) {
-                matchInfo = "התאמה מלאה לחיפוש ✨";
-            } else if (destinationMatches && datesOverlap) {
-                matchInfo = "היעד מתאים ויש חפיפה בתאריכים 📅";
-            } else if (destinationMatches) {
-                matchInfo = "היעד מתאים, התאריכים שונים 📍";
-            } else if (datesOverlap) {
-                matchInfo = "יש חפיפה בתאריכים, היעד שונה 📅";
-            } else {
-                matchInfo = "הצעה נוספת שאולי תעניין אותך ✈️";
-            }
-
-            group.put("matchScore", score);
+            group.put("matchCategory", matchCategory);
             group.put("matchInfo", matchInfo);
 
             groupsToShow.add(group);
         }
 
-        // ההתאמות הטובות ביותר יוצגו ראשונות
-        groupsToShow.sort((group1, group2) ->
-                Integer.compare(
-                        ((Number) group2.get("matchScore")).intValue(),
-                        ((Number) group1.get("matchScore")).intValue()
-                ));
+        // מיון לפי קטגוריות ההתאמה
+        // קטגוריה 0 תמיד ראשונה, אחריה 1 וכן הלאה
+        // קבוצות באותה קטגוריה שומרות על סדר הטעינה
+
+        groupsToShow.sort((group1, group2) -> {
+
+            int category1 =
+                    ((Number) group1.get("matchCategory")).intValue();
+
+            int category2 =
+                    ((Number) group2.get("matchCategory")).intValue();
+
+            return Integer.compare(category1, category2);
+        });
 
         adapter.setGroups(groupsToShow);
 
         if (groupsToShow.isEmpty()) {
+
             tvNoGroups.setText(
                     "עדיין אין טיולים פתוחים להצטרפות 🌍");
-            tvNoGroups.setVisibility(TextView.VISIBLE);
+
+            tvNoGroups.setVisibility(View.VISIBLE);
             rvGroups.setVisibility(View.GONE);
+
         } else {
-            tvNoGroups.setVisibility(TextView.GONE);
+
+            tvNoGroups.setVisibility(View.GONE);
             rvGroups.setVisibility(View.VISIBLE);
         }
     }
 
+    // קבלת ערך מהמסמך או מתוך answers
     private String getGroupValue(
             Map<String, Object> group,
             String key) {
@@ -318,49 +484,62 @@ public class JoinTripActivity extends AppCompatActivity {
         Object value = group.get(key);
 
         if (value == null) {
+
             Object answersObject = group.get("answers");
 
             if (answersObject instanceof Map<?, ?>) {
+
                 value = ((Map<?, ?>) answersObject).get(key);
             }
         }
 
-        return value == null ? "" : value.toString().trim();
+        return value == null
+                ? ""
+                : value.toString().trim();
     }
 
+    // קבלת תאריך שנבחר
     private String getSelectedDate(TextView dateView) {
+
         String date = dateView.getText().toString().trim();
 
         if (date.isEmpty()
                 || date.contains("תאריך")
                 || date.contains("בחרי")
                 || date.contains("בחר")) {
+
             return "";
         }
 
         return date;
     }
 
+    // הצטרפות לקבוצה
     private void joinGroup(Map<String, Object> group) {
 
         if (auth.getCurrentUser() == null) {
+
             Toast.makeText(
                     this,
                     "צריך להתחבר כדי להצטרף לטיול",
                     Toast.LENGTH_SHORT
             ).show();
+
             return;
         }
 
         String userId = auth.getCurrentUser().getUid();
+
         String groupId = getGroupValue(group, "groupId");
 
         if (groupId.isEmpty()) {
+
             Toast.makeText(
                     this,
                     "לא נמצא קוד הטיול",
                     Toast.LENGTH_SHORT
             ).show();
+
             return;
         }
 
@@ -370,10 +549,10 @@ public class JoinTripActivity extends AppCompatActivity {
         DocumentReference userRef =
                 db.collection("Users").document(userId);
 
-        // בדיקת המכסה והצטרפות מתבצעות יחד ב-Transaction
+        // בדיקת זמינות ועדכון הנתונים באותה Transaction
         db.runTransaction(transaction -> {
 
-            // קודם קוראים את שני המסמכים
+            // קריאת שני המסמכים לפני ביצוע שינויים
             DocumentSnapshot groupDocument =
                     transaction.get(groupRef);
 
@@ -388,24 +567,53 @@ public class JoinTripActivity extends AppCompatActivity {
                 return "user_not_found";
             }
 
-            // בדיקה אם הקבוצה סגורה
-            Boolean isClosed = groupDocument.getBoolean("isClosed");
+            // בדיקת סגירת הקבוצה
+            Boolean isClosed =
+                    groupDocument.getBoolean("isClosed");
 
             if (Boolean.TRUE.equals(isClosed)) {
                 return "closed";
             }
 
-            // קריאת רשימת החברים
+            // בדיקת תקינות מספר המשתתפים
+            int maxMembers =
+                    getValidMaxMembers(
+                            groupDocument.get("maxMembers"));
+
+            if (maxMembers <= 0) {
+                return "invalid_group";
+            }
+
+            // בדיקת תקינות תאריכים
+            String groupStart =
+                    groupDocument.getString("startDate");
+
+            String groupEnd =
+                    groupDocument.getString("endDate");
+
+            if (!hasValidGroupDates(groupStart, groupEnd)
+                    || groupEnd.compareTo(getTodayDate()) < 0) {
+
+                return "invalid_group";
+            }
+
+            // קריאת חברי הקבוצה
             List<String> memberIds = new ArrayList<>();
 
-            Object existingMembers = groupDocument.get("memberIds");
+            Object existingMembers =
+                    groupDocument.get("memberIds");
 
             if (existingMembers instanceof List<?>) {
+
                 for (Object id : (List<?>) existingMembers) {
+
                     if (id != null) {
+
                         String memberId = id.toString();
 
-                        if (!memberIds.contains(memberId)) {
+                        if (!memberId.trim().isEmpty()
+                                && !memberIds.contains(memberId)) {
+
                             memberIds.add(memberId);
                         }
                     }
@@ -417,31 +625,21 @@ public class JoinTripActivity extends AppCompatActivity {
                 return "already_member";
             }
 
-            // בדיקת מכסת המשתתפים
-            Object maxObject = groupDocument.get("maxMembers");
-
-            int maxMembers = 30;
-
-            if (maxObject instanceof Number) {
-                maxMembers = ((Number) maxObject).intValue();
-            }
-
-            if (maxMembers <= 0) {
-                maxMembers = 30;
-            }
-
+            // בדיקת מכסה
             if (memberIds.size() >= maxMembers) {
 
-                // הקבוצה מלאה - סוגרים אותה
-                transaction.update(groupRef, "isClosed", true);
+                transaction.update(
+                        groupRef,
+                        "isClosed",
+                        true
+                );
 
                 return "full";
             }
 
-            // הוספת המשתמש החדש
+            // הוספת המשתמש לקבוצה
             memberIds.add(userId);
 
-            // אם הגענו למכסה, סוגרים את הקבוצה
             boolean shouldClose =
                     memberIds.size() >= maxMembers;
 
@@ -457,114 +655,164 @@ public class JoinTripActivity extends AppCompatActivity {
                     shouldClose
             );
 
-            // שמירת כל הקבוצות הקיימות של המשתמש
+            // קריאת כל הקבוצות הקיימות של המשתמש
             List<String> groupIds = new ArrayList<>();
 
             Object existingGroupIds =
                     userDocument.get("groupIds");
 
             if (existingGroupIds instanceof List<?>) {
+
                 for (Object id : (List<?>) existingGroupIds) {
+
                     if (id != null) {
+
                         String existingId = id.toString();
 
-                        if (!groupIds.contains(existingId)) {
+                        if (!existingId.trim().isEmpty()
+                                && !groupIds.contains(existingId)) {
+
                             groupIds.add(existingId);
                         }
                     }
                 }
             }
 
-            // שמירה על הקבוצה הישנה אם עדיין קיימת בשדה groupId
+            // שמירה על groupId הישן, אם קיים
             String oldGroupId =
                     userDocument.getString("groupId");
 
             if (oldGroupId != null
                     && !oldGroupId.trim().isEmpty()
                     && !groupIds.contains(oldGroupId)) {
+
                 groupIds.add(oldGroupId);
             }
 
-            // הוספת הקבוצה החדשה
+            // הוספת הקבוצה החדשה בלי למחוק קבוצות קודמות
             if (!groupIds.contains(groupId)) {
                 groupIds.add(groupId);
             }
 
             Map<String, Object> userData = new HashMap<>();
+
             userData.put("groupIds", groupIds);
 
+            // Merge שומר על שאר שדות המשתמש
             transaction.set(
                     userRef,
                     userData,
                     SetOptions.merge()
             );
 
-            return shouldClose ? "joined_and_closed" : "joined";
+            return shouldClose
+                    ? "joined_and_closed"
+                    : "joined";
 
         }).addOnSuccessListener(result -> {
 
             switch (result) {
 
                 case "joined":
+
                     Toast.makeText(
                             JoinTripActivity.this,
                             "הצטרפת לטיול בהצלחה! ✈️",
                             Toast.LENGTH_LONG
                     ).show();
-                    finish();
+
+                    openPreferences(groupId);
                     break;
 
                 case "joined_and_closed":
+
                     Toast.makeText(
                             JoinTripActivity.this,
                             "הצטרפת בהצלחה! הקבוצה התמלאה ונסגרה להצטרפות 🎉",
                             Toast.LENGTH_LONG
                     ).show();
-                    finish();
+
+                    openPreferences(groupId);
                     break;
 
                 case "already_member":
+
                     Toast.makeText(
                             JoinTripActivity.this,
                             "את כבר חברה בקבוצה הזאת",
                             Toast.LENGTH_LONG
                     ).show();
+
                     break;
 
                 case "closed":
                 case "full":
+
                     Toast.makeText(
                             JoinTripActivity.this,
                             "הקבוצה כבר מלאה או סגורה להצטרפות",
                             Toast.LENGTH_LONG
                     ).show();
+
                     loadGroups();
                     break;
 
                 case "not_found":
+
                     Toast.makeText(
                             JoinTripActivity.this,
                             "הטיול כבר לא קיים",
                             Toast.LENGTH_LONG
                     ).show();
+
                     loadGroups();
                     break;
 
                 case "user_not_found":
+
                     Toast.makeText(
                             JoinTripActivity.this,
                             "לא נמצא מסמך משתמש",
                             Toast.LENGTH_LONG
                     ).show();
+
+                    break;
+
+                case "invalid_group":
+
+                    Toast.makeText(
+                            JoinTripActivity.this,
+                            "פרטי הקבוצה אינם תקינים או שהטיול הסתיים",
+                            Toast.LENGTH_LONG
+                    ).show();
+
+                    loadGroups();
                     break;
             }
 
         }).addOnFailureListener(e ->
+
                 Toast.makeText(
                         JoinTripActivity.this,
                         "לא הצלחנו להצטרף לטיול: " + e.getMessage(),
                         Toast.LENGTH_LONG
                 ).show()
         );
+    }
+
+    // מעבר למסך שאלון ההעדפות
+    private void openPreferences(String groupId) {
+
+        Intent intent = new Intent(
+                JoinTripActivity.this,
+                ActivityPreferences.class
+        );
+
+        // העברת מזהה הקבוצה למסך ההעדפות
+        intent.putExtra("groupId", groupId);
+
+        startActivity(intent);
+
+        finish();
     }
 }
